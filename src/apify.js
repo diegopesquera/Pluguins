@@ -17,9 +17,16 @@ export class ApifyError extends Error {
 }
 
 export class ApifyClient {
-  constructor(token, { fetchImpl = fetch } = {}) {
-    if (!token) throw new ApifyError('Token do Apify ausente.');
+  /**
+   * authMode 'bearer' manda o token no header Authorization.
+   * authMode 'proxy'  nao manda header nenhum: o agent proxy do Claude Code
+   *                   injeta a credencial depois que o pedido sai da VM, entao
+   *                   o token nunca entra na sessao.
+   */
+  constructor(token, { fetchImpl = fetch, authMode = 'bearer' } = {}) {
+    if (authMode !== 'proxy' && !token) throw new ApifyError('Token do Apify ausente.');
     this.token = token;
+    this.authMode = authMode;
     this.fetchImpl = fetchImpl;
   }
 
@@ -32,7 +39,7 @@ export class ApifyClient {
     const res = await this.fetchImpl(url, {
       method,
       headers: {
-        Authorization: `Bearer ${this.token}`,
+        ...(this.authMode === 'proxy' ? {} : { Authorization: `Bearer ${this.token}` }),
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,

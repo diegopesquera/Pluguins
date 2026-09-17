@@ -6,10 +6,35 @@ La Maison, 18 a 20 de setembro de 2026) usando Actors da [Apify](https://apify.c
 Sem dependências: usa o `fetch` nativo do Node (>= 18). Não precisa de
 `npm install`.
 
-## Configurar o token
+## Configurar a credencial
 
-A coleta precisa de um token da API do Apify. Pegue em
-**Apify Console → Settings → API & Integrations → Personal API token** e:
+A coleta precisa de um token da API do Apify: **Apify Console → Settings →
+API & Integrations → Personal API token**. Há dois caminhos.
+
+### Opção 1 — API credential do ambiente (recomendada em sessão na nuvem)
+
+O token fica guardado no ambiente e o agent proxy injeta o header
+`Authorization` **depois** que o pedido sai da VM: o token nunca entra na
+sessão, não aparece em variável de ambiente nem em arquivo. Também dispensa
+liberar o domínio na allowlist de rede, porque os hosts da credencial não
+passam por ela.
+
+Em [claude.ai/code](https://claude.ai/code), no ambiente → **API credentials**
+→ **Add credential**:
+
+- **Credential type**: `Bearer`
+- **Allowed websites**: `api.apify.com`
+- **Custom headers**: nome `Authorization`, prefixo `Bearer`, valor = o token
+
+Depois defina em **Environment variables**:
+
+```text
+COLETA_AUTH_MODE=proxy
+```
+
+Disponível nos planos Pro e Max, e exige papel de admin da organização.
+
+### Opção 2 — token como variável de ambiente
 
 ```bash
 cp .env.example .env
@@ -19,6 +44,18 @@ cp .env.example .env
 O `.env` está no `.gitignore` e não deve ser versionado. O token vai sempre no
 header `Authorization`, nunca na query string, para não vazar em log de proxy
 nem no histórico do shell.
+
+Numa sessão na nuvem, esse caminho tem duas pegadinhas:
+
+1. Quem usa o ambiente consegue ler o valor da variável.
+2. `api.apify.com` **não** está entre os domínios liberados no nível
+   **Trusted**. É preciso mudar **Network access** para **Custom**, listar
+   `api.apify.com` em **Allowed domains** e marcar *Also include default list
+   of common package managers*. Sem isso a coleta falha na rede, mesmo com o
+   token correto.
+
+Sem nenhuma das duas opções configuradas, o comando explica o que falta e não
+consome crédito.
 
 ## Usar
 

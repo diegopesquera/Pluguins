@@ -37,14 +37,32 @@ function parseArgs(argv) {
   return args;
 }
 
-function loadToken() {
+/**
+ * Decide como autenticar.
+ *
+ * COLETA_AUTH_MODE=proxy: nao usa token nenhum aqui. O agent proxy do Claude
+ * Code injeta a credencial cadastrada no ambiente depois que o pedido sai da
+ * VM, entao o token nunca entra na sessao. Use quando o token estiver como
+ * API credential do ambiente, com host api.apify.com.
+ *
+ * Caso contrario, espera APIFY_TOKEN no ambiente.
+ */
+function loadAuth() {
+  if (process.env.COLETA_AUTH_MODE?.trim().toLowerCase() === 'proxy') {
+    return { token: null, authMode: 'proxy' };
+  }
+
   const token = process.env.APIFY_TOKEN?.trim();
-  if (token) return token;
+  if (token) return { token, authMode: 'bearer' };
+
   throw new Error(
-    'APIFY_TOKEN nao esta definido.\n' +
-      'Pegue o token em Apify Console > Settings > API & Integrations e exporte:\n' +
+    'Nenhuma credencial do Apify configurada.\n\n' +
+      'Opcao 1 - token no ambiente:\n' +
       '  export APIFY_TOKEN=apify_api_...\n' +
-      'ou copie .env.example para .env e rode com:  node --env-file=.env src/run.js collect',
+      '  ou copie .env.example para .env e rode com --env-file=.env\n\n' +
+      'Opcao 2 - API credential do ambiente (o token nao entra na sessao):\n' +
+      '  cadastre a credencial para o host api.apify.com e defina\n' +
+      '  COLETA_AUTH_MODE=proxy',
   );
 }
 
@@ -52,7 +70,11 @@ const fmt = (n) => new Intl.NumberFormat('pt-BR').format(n);
 
 /** Confere que o token funciona e mostra o credito disponivel. */
 async function preflight() {
-  const client = new ApifyClient(loadToken());
+  const { token, authMode } = loadAuth();
+  const client = new ApifyClient(token, { authMode });
+  if (authMode === 'proxy') {
+    console.log('Autenticacao: API credential do ambiente (injetada pelo proxy).');
+  }
   const me = await client.me();
   console.log(`Conta Apify: ${me.username}${me.email ? ` <${me.email}>` : ''}`);
   console.log(`Plano: ${me.plan?.id ?? me.plan?.description ?? 'desconhecido'}`);
@@ -114,8 +136,8 @@ function printPlan(selected) {
 
 async function collect(args) {
   const selected = selectSources(args);
-  // Confere o token antes de imprimir o plano, para falhar rapido.
-  const token = args.dryRun ? null : loadToken();
+  // Confere a credencial antes de imprimir o plano, para falhar rapido.
+  const auth = args.dryRun ? null : loadAuth();
 
   printPlan(selected);
 
@@ -124,7 +146,7 @@ async function collect(args) {
     return;
   }
 
-  const client = new ApifyClient(token);
+  const client = new ApifyClient(auth.token, { authMode: auth.authMode });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const outDir = args.out ? path.resolve(args.out) : path.join(ROOT, 'data', 'runs', stamp);
   const rawDir = path.join(outDir, 'raw');

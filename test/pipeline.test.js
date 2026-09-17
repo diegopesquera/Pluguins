@@ -41,6 +41,28 @@ test('cliente: manda o token no header e nunca na query string', async () => {
   assert.ok(!seen.url.includes('apify_api_segredo'), 'token apareceu na URL');
 });
 
+test('cliente: authMode proxy nao manda header Authorization', async () => {
+  let seen;
+  const client = new ApifyClient(null, {
+    authMode: 'proxy',
+    fetchImpl: async (url, opts) => {
+      seen = { url: url.toString(), headers: opts.headers };
+      return jsonRes({ data: { username: 'diego' } });
+    },
+  });
+
+  const me = await client.me();
+  assert.equal(me.username, 'diego');
+  assert.equal(seen.headers.Authorization, undefined, 'o proxy injeta o header, o cliente nao deve mandar');
+  assert.ok(!seen.url.includes('token'), 'nada de token na URL');
+});
+
+test('cliente: authMode proxy dispensa token, bearer exige', () => {
+  assert.doesNotThrow(() => new ApifyClient(null, { authMode: 'proxy' }));
+  assert.throws(() => new ApifyClient(null), /Token do Apify ausente/);
+  assert.throws(() => new ApifyClient(undefined, { authMode: 'bearer' }), /Token do Apify ausente/);
+});
+
 test('cliente: erro HTTP virou ApifyError com status e mensagem da API', async () => {
   const client = new ApifyClient('t', {
     fetchImpl: async () => jsonRes({ error: { message: 'Monthly usage hard limit exceeded' } }, 403),
