@@ -32,7 +32,18 @@ Depois defina em **Environment variables**:
 COLETA_AUTH_MODE=proxy
 ```
 
-Disponível nos planos Pro e Max, e exige papel de admin da organização.
+Disponível nos planos Pro e Max, e exige papel de admin da organização. Se a
+seção **API credentials** não aparecer no diálogo, é o plano ou o papel — use a
+Opção 2.
+
+Depois de salvar, confira na lista se a credencial ficou marcada **Not sent**:
+se ficou, a nota embaixo dela diz o motivo e o que corrigir. O valor não pode
+ser visto de novo depois de salvo, e não há edição — para trocar, apague e
+cadastre outra vez.
+
+Variáveis de ambiente são lidas **uma vez, no início da sessão**. Uma sessão já
+aberta não enxerga o que você configurar agora: abra uma sessão nova depois de
+salvar.
 
 ### Opção 2 — token como variável de ambiente
 
