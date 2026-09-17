@@ -1,0 +1,17 @@
+{
+  "name": "costume-gourmet-coleta",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Coleta de dados publicos sobre o Festival Costume Gourmet via Apify",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "preflight": "node src/run.js preflight",
+    "plan": "node src/run.js collect --dry-run",
+    "collect": "node src/run.js collect",
+    "report": "node src/run.js report",
+    "test": "node --test test/*.test.js"
+  }
+}

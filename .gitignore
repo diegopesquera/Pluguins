@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.local
+
+# Saidas da coleta: dados brutos nao vao para o repositorio
+data/runs/
+*.log
